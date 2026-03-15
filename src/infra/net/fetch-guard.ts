@@ -11,6 +11,10 @@ import {
   SsrFBlockedError,
   type SsrFPolicy,
 } from "./ssrf.js";
+import {
+  UNDICI_KEEP_ALIVE_MAX_TIMEOUT_MS,
+  UNDICI_KEEP_ALIVE_TIMEOUT_MS,
+} from "./undici-global-dispatcher.js";
 
 type FetchLike = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
@@ -196,7 +200,10 @@ export async function fetchWithSsrFGuard(params: GuardedFetchOptions): Promise<G
       const canUseTrustedEnvProxy =
         mode === GUARDED_FETCH_MODE.TRUSTED_ENV_PROXY && hasProxyEnvConfigured();
       if (canUseTrustedEnvProxy) {
-        dispatcher = new EnvHttpProxyAgent();
+        dispatcher = new EnvHttpProxyAgent({
+          keepAliveTimeout: UNDICI_KEEP_ALIVE_TIMEOUT_MS,
+          keepAliveMaxTimeout: UNDICI_KEEP_ALIVE_MAX_TIMEOUT_MS,
+        });
       } else if (params.pinDns !== false) {
         dispatcher = createPinnedDispatcher(pinned, params.dispatcherPolicy);
       }

@@ -13,6 +13,10 @@ import {
   parseLooseIpAddress,
 } from "../../shared/net/ip.js";
 import { normalizeHostname } from "./hostname.js";
+import {
+  UNDICI_KEEP_ALIVE_MAX_TIMEOUT_MS,
+  UNDICI_KEEP_ALIVE_TIMEOUT_MS,
+} from "./undici-global-dispatcher.js";
 
 type LookupCallback = (
   err: NodeJS.ErrnoException | null,
@@ -359,23 +363,33 @@ export function createPinnedDispatcher(
   if (!policy || policy.mode === "direct") {
     return new Agent({
       connect: withPinnedLookup(pinned.lookup, policy?.connect),
+      keepAliveTimeout: UNDICI_KEEP_ALIVE_TIMEOUT_MS,
+      keepAliveMaxTimeout: UNDICI_KEEP_ALIVE_MAX_TIMEOUT_MS,
     });
   }
 
   if (policy.mode === "env-proxy") {
     return new EnvHttpProxyAgent({
       connect: withPinnedLookup(pinned.lookup, policy.connect),
+      keepAliveTimeout: UNDICI_KEEP_ALIVE_TIMEOUT_MS,
+      keepAliveMaxTimeout: UNDICI_KEEP_ALIVE_MAX_TIMEOUT_MS,
       ...(policy.proxyTls ? { proxyTls: { ...policy.proxyTls } } : {}),
     });
   }
 
   const proxyUrl = policy.proxyUrl.trim();
   if (!policy.proxyTls) {
-    return new ProxyAgent(proxyUrl);
+    return new ProxyAgent({
+      uri: proxyUrl,
+      keepAliveTimeout: UNDICI_KEEP_ALIVE_TIMEOUT_MS,
+      keepAliveMaxTimeout: UNDICI_KEEP_ALIVE_MAX_TIMEOUT_MS,
+    });
   }
   return new ProxyAgent({
     uri: proxyUrl,
     proxyTls: { ...policy.proxyTls },
+    keepAliveTimeout: UNDICI_KEEP_ALIVE_TIMEOUT_MS,
+    keepAliveMaxTimeout: UNDICI_KEEP_ALIVE_MAX_TIMEOUT_MS,
   });
 }
 

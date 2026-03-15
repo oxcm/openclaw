@@ -4,6 +4,10 @@ import type { TelegramNetworkConfig } from "../config/types.telegram.js";
 import { resolveFetch } from "../infra/fetch.js";
 import { hasEnvHttpProxyConfigured } from "../infra/net/proxy-env.js";
 import type { PinnedDispatcherPolicy } from "../infra/net/ssrf.js";
+import {
+  UNDICI_KEEP_ALIVE_MAX_TIMEOUT_MS,
+  UNDICI_KEEP_ALIVE_TIMEOUT_MS,
+} from "../infra/net/undici-global-dispatcher.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 import {
   resolveTelegramAutoSelectFamilyDecision,
@@ -238,8 +242,14 @@ function createTelegramDispatcher(policy: PinnedDispatcherPolicy): {
       ? ({
           uri: policy.proxyUrl,
           proxyTls: { ...policy.proxyTls },
+          keepAliveTimeout: UNDICI_KEEP_ALIVE_TIMEOUT_MS,
+          keepAliveMaxTimeout: UNDICI_KEEP_ALIVE_MAX_TIMEOUT_MS,
         } satisfies ConstructorParameters<typeof ProxyAgent>[0])
-      : policy.proxyUrl;
+      : ({
+          uri: policy.proxyUrl,
+          keepAliveTimeout: UNDICI_KEEP_ALIVE_TIMEOUT_MS,
+          keepAliveMaxTimeout: UNDICI_KEEP_ALIVE_MAX_TIMEOUT_MS,
+        } satisfies ConstructorParameters<typeof ProxyAgent>[0]);
     try {
       return {
         dispatcher: new ProxyAgent(proxyOptions),
@@ -253,15 +263,14 @@ function createTelegramDispatcher(policy: PinnedDispatcherPolicy): {
   }
 
   if (policy.mode === "env-proxy") {
-    const proxyOptions =
-      policy.connect || policy.proxyTls
-        ? ({
-            ...(policy.connect ? { connect: { ...policy.connect } } : {}),
-            // undici's EnvHttpProxyAgent passes `connect` only to the no-proxy Agent.
-            // Real proxied HTTPS traffic reads transport settings from ProxyAgent.proxyTls.
-            ...(policy.proxyTls ? { proxyTls: { ...policy.proxyTls } } : {}),
-          } satisfies ConstructorParameters<typeof EnvHttpProxyAgent>[0])
-        : undefined;
+    const proxyOptions = {
+      ...(policy.connect ? { connect: { ...policy.connect } } : {}),
+      // undici's EnvHttpProxyAgent passes `connect` only to the no-proxy Agent.
+      // Real proxied HTTPS traffic reads transport settings from ProxyAgent.proxyTls.
+      ...(policy.proxyTls ? { proxyTls: { ...policy.proxyTls } } : {}),
+      keepAliveTimeout: UNDICI_KEEP_ALIVE_TIMEOUT_MS,
+      keepAliveMaxTimeout: UNDICI_KEEP_ALIVE_MAX_TIMEOUT_MS,
+    } satisfies ConstructorParameters<typeof EnvHttpProxyAgent>[0];
     try {
       return {
         dispatcher: new EnvHttpProxyAgent(proxyOptions),
@@ -279,13 +288,11 @@ function createTelegramDispatcher(policy: PinnedDispatcherPolicy): {
         ...(policy.connect ? { connect: { ...policy.connect } } : {}),
       };
       return {
-        dispatcher: new Agent(
-          directPolicy.connect
-            ? ({
-                connect: { ...directPolicy.connect },
-              } satisfies ConstructorParameters<typeof Agent>[0])
-            : undefined,
-        ),
+        dispatcher: new Agent({
+          ...(directPolicy.connect ? { connect: { ...directPolicy.connect } } : {}),
+          keepAliveTimeout: UNDICI_KEEP_ALIVE_TIMEOUT_MS,
+          keepAliveMaxTimeout: UNDICI_KEEP_ALIVE_MAX_TIMEOUT_MS,
+        }),
         mode: "direct",
         effectivePolicy: directPolicy,
       };
@@ -293,13 +300,11 @@ function createTelegramDispatcher(policy: PinnedDispatcherPolicy): {
   }
 
   return {
-    dispatcher: new Agent(
-      policy.connect
-        ? ({
-            connect: { ...policy.connect },
-          } satisfies ConstructorParameters<typeof Agent>[0])
-        : undefined,
-    ),
+    dispatcher: new Agent({
+      ...(policy.connect ? { connect: { ...policy.connect } } : {}),
+      keepAliveTimeout: UNDICI_KEEP_ALIVE_TIMEOUT_MS,
+      keepAliveMaxTimeout: UNDICI_KEEP_ALIVE_MAX_TIMEOUT_MS,
+    }),
     mode: "direct",
     effectivePolicy: policy,
   };

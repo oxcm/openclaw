@@ -1,6 +1,10 @@
 import { ProxyAgent, fetch as undiciFetch } from "undici";
 import { danger } from "../../globals.js";
 import { wrapFetchWithAbortSignal } from "../../infra/fetch.js";
+import {
+  UNDICI_KEEP_ALIVE_MAX_TIMEOUT_MS,
+  UNDICI_KEEP_ALIVE_TIMEOUT_MS,
+} from "../../infra/net/undici-global-dispatcher.js";
 import type { RuntimeEnv } from "../../runtime.js";
 
 export function resolveDiscordRestFetch(
@@ -12,7 +16,11 @@ export function resolveDiscordRestFetch(
     return fetch;
   }
   try {
-    const agent = new ProxyAgent(proxy);
+    const agent = new ProxyAgent({
+      uri: proxy,
+      keepAliveTimeout: UNDICI_KEEP_ALIVE_TIMEOUT_MS,
+      keepAliveMaxTimeout: UNDICI_KEEP_ALIVE_MAX_TIMEOUT_MS,
+    });
     const fetcher = ((input: RequestInfo | URL, init?: RequestInit) =>
       undiciFetch(input as string | URL, {
         ...(init as Record<string, unknown>),

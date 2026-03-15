@@ -5,6 +5,10 @@ import { ProxyAgent, fetch as undiciFetch } from "undici";
 import WebSocket from "ws";
 import type { DiscordAccountConfig } from "../../config/types.js";
 import { danger } from "../../globals.js";
+import {
+  UNDICI_KEEP_ALIVE_MAX_TIMEOUT_MS,
+  UNDICI_KEEP_ALIVE_TIMEOUT_MS,
+} from "../../infra/net/undici-global-dispatcher.js";
 import type { RuntimeEnv } from "../../runtime.js";
 
 const DISCORD_GATEWAY_BOT_URL = "https://discord.com/api/v10/gateway/bot";
@@ -192,7 +196,11 @@ export function createDiscordGatewayPlugin(params: {
 
   try {
     const wsAgent = new HttpsProxyAgent<string>(proxy);
-    const fetchAgent = new ProxyAgent(proxy);
+    const fetchAgent = new ProxyAgent({
+      uri: proxy,
+      keepAliveTimeout: UNDICI_KEEP_ALIVE_TIMEOUT_MS,
+      keepAliveMaxTimeout: UNDICI_KEEP_ALIVE_MAX_TIMEOUT_MS,
+    });
 
     params.runtime.log?.("discord: gateway proxy enabled");
 

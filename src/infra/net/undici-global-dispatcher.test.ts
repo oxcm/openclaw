@@ -64,6 +64,8 @@ vi.mock("./proxy-env.js", () => ({
 import { hasEnvHttpProxyConfigured } from "./proxy-env.js";
 import {
   DEFAULT_UNDICI_STREAM_TIMEOUT_MS,
+  UNDICI_KEEP_ALIVE_MAX_TIMEOUT_MS,
+  UNDICI_KEEP_ALIVE_TIMEOUT_MS,
   ensureGlobalUndiciEnvProxyDispatcher,
   ensureGlobalUndiciStreamTimeouts,
   resetGlobalUndiciStreamTimeoutsForTests,
@@ -88,6 +90,8 @@ describe("ensureGlobalUndiciStreamTimeouts", () => {
     expect(next).toBeInstanceOf(Agent);
     expect(next.options?.bodyTimeout).toBe(DEFAULT_UNDICI_STREAM_TIMEOUT_MS);
     expect(next.options?.headersTimeout).toBe(DEFAULT_UNDICI_STREAM_TIMEOUT_MS);
+    expect(next.options?.keepAliveTimeout).toBe(UNDICI_KEEP_ALIVE_TIMEOUT_MS);
+    expect(next.options?.keepAliveMaxTimeout).toBe(UNDICI_KEEP_ALIVE_MAX_TIMEOUT_MS);
     expect(next.options?.connect).toEqual({
       autoSelectFamily: true,
       autoSelectFamilyAttemptTimeout: 300,
@@ -105,6 +109,8 @@ describe("ensureGlobalUndiciStreamTimeouts", () => {
     expect(next).toBeInstanceOf(EnvHttpProxyAgent);
     expect(next.options?.bodyTimeout).toBe(DEFAULT_UNDICI_STREAM_TIMEOUT_MS);
     expect(next.options?.headersTimeout).toBe(DEFAULT_UNDICI_STREAM_TIMEOUT_MS);
+    expect(next.options?.keepAliveTimeout).toBe(UNDICI_KEEP_ALIVE_TIMEOUT_MS);
+    expect(next.options?.keepAliveMaxTimeout).toBe(UNDICI_KEEP_ALIVE_MAX_TIMEOUT_MS);
     expect(next.options?.connect).toEqual({
       autoSelectFamily: false,
       autoSelectFamilyAttemptTimeout: 300,

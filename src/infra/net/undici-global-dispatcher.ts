@@ -4,6 +4,12 @@ import { hasEnvHttpProxyConfigured } from "./proxy-env.js";
 
 export const DEFAULT_UNDICI_STREAM_TIMEOUT_MS = 30 * 60 * 1000;
 
+/** Idle keep-alive timeout for pooled connections (ms). */
+export const UNDICI_KEEP_ALIVE_TIMEOUT_MS = 30_000;
+
+/** Upper bound on server-advertised keep-alive (ms). */
+export const UNDICI_KEEP_ALIVE_MAX_TIMEOUT_MS = 10 * 60 * 1000;
+
 const AUTO_SELECT_FAMILY_ATTEMPT_TIMEOUT_MS = 300;
 
 let lastAppliedTimeoutKey: string | null = null;
@@ -93,7 +99,12 @@ export function ensureGlobalUndiciEnvProxyDispatcher(): void {
     return;
   }
   try {
-    setGlobalDispatcher(new EnvHttpProxyAgent());
+    setGlobalDispatcher(
+      new EnvHttpProxyAgent({
+        keepAliveTimeout: UNDICI_KEEP_ALIVE_TIMEOUT_MS,
+        keepAliveMaxTimeout: UNDICI_KEEP_ALIVE_MAX_TIMEOUT_MS,
+      }),
+    );
     lastAppliedProxyBootstrap = true;
   } catch {
     // Best-effort bootstrap only.
@@ -123,6 +134,8 @@ export function ensureGlobalUndiciStreamTimeouts(opts?: { timeoutMs?: number }):
       const proxyOptions = {
         bodyTimeout: timeoutMs,
         headersTimeout: timeoutMs,
+        keepAliveTimeout: UNDICI_KEEP_ALIVE_TIMEOUT_MS,
+        keepAliveMaxTimeout: UNDICI_KEEP_ALIVE_MAX_TIMEOUT_MS,
         ...(connect ? { connect } : {}),
       } as ConstructorParameters<typeof EnvHttpProxyAgent>[0];
       setGlobalDispatcher(new EnvHttpProxyAgent(proxyOptions));
@@ -131,6 +144,8 @@ export function ensureGlobalUndiciStreamTimeouts(opts?: { timeoutMs?: number }):
         new Agent({
           bodyTimeout: timeoutMs,
           headersTimeout: timeoutMs,
+          keepAliveTimeout: UNDICI_KEEP_ALIVE_TIMEOUT_MS,
+          keepAliveMaxTimeout: UNDICI_KEEP_ALIVE_MAX_TIMEOUT_MS,
           ...(connect ? { connect } : {}),
         }),
       );

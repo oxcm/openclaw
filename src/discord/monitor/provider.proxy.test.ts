@@ -89,10 +89,11 @@ vi.mock("https-proxy-agent", () => ({
 vi.mock("undici", () => ({
   ProxyAgent: class {
     proxyUrl: string;
-    constructor(proxyUrl: string) {
-      this.proxyUrl = proxyUrl;
-      undiciProxyAgentSpy(proxyUrl);
-      restProxyAgentSpy(proxyUrl);
+    constructor(opts: string | { uri: string }) {
+      const url = typeof opts === "string" ? opts : opts.uri;
+      this.proxyUrl = url;
+      undiciProxyAgentSpy(opts);
+      restProxyAgentSpy(opts);
     }
   },
   fetch: undiciFetchMock,
@@ -245,7 +246,9 @@ describe("createDiscordGatewayPlugin", () => {
       options: { token: "token-123" },
     });
 
-    expect(restProxyAgentSpy).toHaveBeenCalledWith("http://proxy.test:8080");
+    expect(restProxyAgentSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ uri: "http://proxy.test:8080" }),
+    );
     expect(undiciFetchMock).toHaveBeenCalledWith(
       "https://discord.com/api/v10/gateway/bot",
       expect.objectContaining({

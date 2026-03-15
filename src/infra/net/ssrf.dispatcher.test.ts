@@ -22,6 +22,10 @@ vi.mock("undici", () => ({
 }));
 
 import { createPinnedDispatcher, type PinnedHostname } from "./ssrf.js";
+import {
+  UNDICI_KEEP_ALIVE_MAX_TIMEOUT_MS,
+  UNDICI_KEEP_ALIVE_TIMEOUT_MS,
+} from "./undici-global-dispatcher.js";
 
 describe("createPinnedDispatcher", () => {
   it("uses pinned lookup without overriding global family policy", () => {
@@ -39,6 +43,8 @@ describe("createPinnedDispatcher", () => {
       connect: {
         lookup,
       },
+      keepAliveTimeout: UNDICI_KEEP_ALIVE_TIMEOUT_MS,
+      keepAliveMaxTimeout: UNDICI_KEEP_ALIVE_MAX_TIMEOUT_MS,
     });
     const firstCallArg = agentCtor.mock.calls[0]?.[0] as
       | { connect?: Record<string, unknown> }
@@ -70,6 +76,8 @@ describe("createPinnedDispatcher", () => {
         autoSelectFamilyAttemptTimeout: 300,
         lookup,
       },
+      keepAliveTimeout: UNDICI_KEEP_ALIVE_TIMEOUT_MS,
+      keepAliveMaxTimeout: UNDICI_KEEP_ALIVE_MAX_TIMEOUT_MS,
     });
   });
 
@@ -96,6 +104,8 @@ describe("createPinnedDispatcher", () => {
         autoSelectFamily: true,
         lookup,
       },
+      keepAliveTimeout: UNDICI_KEEP_ALIVE_TIMEOUT_MS,
+      keepAliveMaxTimeout: UNDICI_KEEP_ALIVE_MAX_TIMEOUT_MS,
       proxyTls: {
         autoSelectFamily: true,
       },
@@ -123,6 +133,8 @@ describe("createPinnedDispatcher", () => {
       proxyTls: {
         autoSelectFamily: false,
       },
+      keepAliveTimeout: UNDICI_KEEP_ALIVE_TIMEOUT_MS,
+      keepAliveMaxTimeout: UNDICI_KEEP_ALIVE_MAX_TIMEOUT_MS,
     });
   });
 });

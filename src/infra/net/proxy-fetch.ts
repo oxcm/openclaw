@@ -1,6 +1,10 @@
 import { EnvHttpProxyAgent, ProxyAgent, fetch as undiciFetch } from "undici";
 import { logWarn } from "../../logger.js";
 import { hasEnvHttpProxyConfigured } from "./proxy-env.js";
+import {
+  UNDICI_KEEP_ALIVE_MAX_TIMEOUT_MS,
+  UNDICI_KEEP_ALIVE_TIMEOUT_MS,
+} from "./undici-global-dispatcher.js";
 
 export const PROXY_FETCH_PROXY_URL = Symbol.for("openclaw.proxyFetch.proxyUrl");
 type ProxyFetchWithMetadata = typeof fetch & {
@@ -15,7 +19,11 @@ export function makeProxyFetch(proxyUrl: string): typeof fetch {
   let agent: ProxyAgent | null = null;
   const resolveAgent = (): ProxyAgent => {
     if (!agent) {
-      agent = new ProxyAgent(proxyUrl);
+      agent = new ProxyAgent({
+        uri: proxyUrl,
+        keepAliveTimeout: UNDICI_KEEP_ALIVE_TIMEOUT_MS,
+        keepAliveMaxTimeout: UNDICI_KEEP_ALIVE_MAX_TIMEOUT_MS,
+      });
     }
     return agent;
   };
@@ -58,7 +66,10 @@ export function resolveProxyFetchFromEnv(
     return undefined;
   }
   try {
-    const agent = new EnvHttpProxyAgent();
+    const agent = new EnvHttpProxyAgent({
+      keepAliveTimeout: UNDICI_KEEP_ALIVE_TIMEOUT_MS,
+      keepAliveMaxTimeout: UNDICI_KEEP_ALIVE_MAX_TIMEOUT_MS,
+    });
     return ((input: RequestInfo | URL, init?: RequestInit) =>
       undiciFetch(input as string | URL, {
         ...(init as Record<string, unknown>),

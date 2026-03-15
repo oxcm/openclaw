@@ -21,10 +21,10 @@ const { ProxyAgent, EnvHttpProxyAgent, undiciFetch, proxyAgentSpy, envAgentSpy, 
     class ProxyAgent {
       static lastCreated: ProxyAgent | undefined;
       proxyUrl: string;
-      constructor(proxyUrl: string) {
-        this.proxyUrl = proxyUrl;
+      constructor(opts: string | { uri: string }) {
+        this.proxyUrl = typeof opts === "string" ? opts : opts.uri;
         ProxyAgent.lastCreated = this;
-        proxyAgentSpy(proxyUrl);
+        proxyAgentSpy(opts);
       }
     }
     class EnvHttpProxyAgent {
@@ -80,7 +80,7 @@ describe("makeProxyFetch", () => {
     expect(proxyAgentSpy).not.toHaveBeenCalled();
     await proxyFetch("https://api.example.com/v1/audio");
 
-    expect(proxyAgentSpy).toHaveBeenCalledWith(proxyUrl);
+    expect(proxyAgentSpy).toHaveBeenCalledWith(expect.objectContaining({ uri: proxyUrl }));
     expect(undiciFetch).toHaveBeenCalledWith(
       "https://api.example.com/v1/audio",
       expect.objectContaining({ dispatcher: getLastAgent() }),
