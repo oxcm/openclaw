@@ -295,3 +295,37 @@
   - `node --import tsx scripts/release-check.ts`
   - `pnpm release:check`
   - `pnpm test:install:smoke` or `OPENCLAW_INSTALL_SMOKE_SKIP_NONROOT=1 pnpm test:install:smoke` for non-root smoke path.
+
+## Cursor Cloud specific instructions
+
+### Services
+
+OpenClaw is a TypeScript monorepo (pnpm workspace) with these relevant services for cloud development:
+
+| Service            | Description                           | Start command                                               |
+| ------------------ | ------------------------------------- | ----------------------------------------------------------- |
+| Core CLI + Gateway | WebSocket control plane on port 18789 | See "Starting the gateway" below                            |
+| Control UI         | Web dashboard served by gateway       | Built with `pnpm ui:build`, served automatically by gateway |
+
+### Starting the gateway
+
+1. Set gateway mode (first time only): `node openclaw.mjs config set gateway.mode local`
+2. Start: `OPENCLAW_SKIP_CHANNELS=1 node openclaw.mjs gateway run --bind loopback --port 18789 --force`
+3. Get authenticated dashboard URL: `node openclaw.mjs dashboard --no-open`
+4. Verify: `node openclaw.mjs channels status` or `node openclaw.mjs status --all`
+
+The gateway requires a built `dist/` directory. If dist is stale, `pnpm openclaw gateway run` auto-rebuilds via `scripts/run-node.mjs`.
+
+### Lint, test, build
+
+Standard commands are documented in the "Build, Test, and Development Commands" section above. Key notes for cloud agents:
+
+- Use `OPENCLAW_TEST_PROFILE=low OPENCLAW_TEST_SERIAL_GATEWAY=1 pnpm test` to avoid OOM in constrained environments.
+- `pnpm check` runs format + typecheck + lint. `CHANGELOG.md` may have pre-existing format drift; the individual subcommands (`pnpm tsgo`, `pnpm lint`) pass independently.
+- `pnpm build` must complete before `pnpm ui:build` output is served by the gateway. Build order: `pnpm install` -> `pnpm ui:build` -> `pnpm build`.
+
+### Gotchas
+
+- `pnpm install` warns about ignored build scripts for `@discordjs/opus` and `@tloncorp/tlon-skill`. These are optional and do not block core functionality.
+- The gateway exits with "Missing config" if `gateway.mode` is not set. Run `node openclaw.mjs config set gateway.mode local` first.
+- `OPENCLAW_SKIP_CHANNELS=1` skips channel providers (WhatsApp, Telegram, etc.) which require external credentials not available in cloud VMs.
